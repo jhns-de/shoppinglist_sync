@@ -16,9 +16,9 @@ grocy_token = os.environ['GROCY_TOKEN']
 
 # Create data folder if it does not exist
 if not os.path.exists('data'):
-    os.makedirs('data')
+    os.makedirs('./data')
 
-db = SqliteDatabase('data/sync.sqlite')
+db = SqliteDatabase('./data/sync.sqlite')
 
 class BaseModel(Model):
     class Meta:
