@@ -1,0 +1,14 @@
+services:
+  shoppinglist_sync:
+    image: ghcr.io/jhns-de/shoppinglist_sync:main
+    container_name: shoppinglist_sync
+    restart: unless-stopped
+    volumes:
+      - ./shoppinglist_sync:/app/data
+    environment:
+      - CALDAV_HOST=
+      - CALDAV_USER=
+      - CALDAV_PASSWORD=
+      - CALDAV_SHOPPING_LIST_URL=
+      - GROCY_HOST=
+      - GROCY_TOKEN=
