@@ -10,6 +10,8 @@ RUN pip install -r /app/requirements.txt
 
 COPY helper.py scheduler.py sync_grocy.py /app/
 
+WORKDIR /app
+
 VOLUME ["/app/data"]
 
 CMD ["python", "/app/scheduler.py"]
