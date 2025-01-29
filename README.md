@@ -1,0 +1,14 @@
+# Shoppinglist Sync
+
+## Env Variables
+
+```env
+CALDAV_HOST=
+CALDAV_USER=
+CALDAV_PASSWORD=
+CALDAV_SHOPPING_LIST_URL=
+
+GROCY_HOST=
+GROCY_TOKEN=
+```
+
