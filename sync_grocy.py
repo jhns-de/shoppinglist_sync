@@ -130,6 +130,7 @@ def main():
             console.print(f"[bold green]Updated CalDav: {db_item.name} - Amount: {item['amount']}[/bold green]")
             db_item.amount = item['amount']
             db_item.save()
+    db.close()
 
 
 if __name__=="__main__":
