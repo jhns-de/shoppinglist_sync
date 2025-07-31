@@ -17,7 +17,7 @@ A Python application that synchronizes shopping lists between [Grocy](https://gr
 
 ## Requirements
 
-- Python 3.13+
+- Python 3.9+
 - Grocy instance with API access
 - CalDAV-compatible calendar server (Nextcloud, etc.)
 
