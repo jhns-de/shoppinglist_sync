@@ -4,11 +4,11 @@ services:
     container_name: shoppinglist_sync
     restart: unless-stopped
     volumes:
-      - ./shoppinglist_sync:/app/data
+      - ./data:/app/data
     environment:
-      - CALDAV_HOST=
-      - CALDAV_USER=
-      - CALDAV_PASSWORD=
-      - CALDAV_SHOPPING_LIST_URL=
-      - GROCY_HOST=
-      - GROCY_TOKEN=
+      - CALDAV_HOST=${CALDAV_HOST}
+      - CALDAV_USER=${CALDAV_USER}
+      - CALDAV_PASSWORD=${CALDAV_PASSWORD}
+      - CALDAV_SHOPPING_LIST_URL=${CALDAV_SHOPPING_LIST_URL}
+      - GROCY_HOST=${GROCY_HOST}
+      - GROCY_TOKEN=${GROCY_TOKEN}
