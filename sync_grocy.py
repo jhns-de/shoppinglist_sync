@@ -73,7 +73,13 @@ def get_caldav_item(uid: str):
         password=os.environ['CALDAV_PASSWORD']
     ) as client:
         shopping_list = client.calendar(url=os.environ['CALDAV_SHOPPING_LIST_URL'])
-        return shopping_list.search(todo=True, uid=uid)[0]
+        result = shopping_list.search(todo=True, uid=uid)
+        log.debug(result)
+        if len(result) == 0:
+            raise ValueError(f"No item found with uid: {uid}")
+        elif len(result) > 1:
+            raise ValueError(f"Multiple items found with uid: {uid}")
+        return result[0]
 
 def overwrite_caldav_item(uid: str, name: str, amount: int):
     with caldav.DAVClient(
@@ -125,12 +131,20 @@ def main():
             )
         elif db_item.amount != item['amount']:
             log.info(f"{db_item.name} amount changed: {db_item.amount} -> {item['amount']}")
-            caldav_item = get_caldav_item(uid=db_item.caldav_uuid)
-            log.info(f"Found old item: {caldav_item.instance.vtodo.summary.value}")
-            overwrite_caldav_item(uid=db_item.caldav_uuid, name=db_item.name, amount=item['amount'])
-            log.info(f"Updated CalDav: {db_item.name} - Amount: {item['amount']}")
-            db_item.amount = item['amount']
-            db_item.save()
+            try:
+                caldav_item = get_caldav_item(uid=db_item.caldav_uuid)
+                log.info(f"Found old item: {caldav_item.instance.vtodo.summary.value}")
+                overwrite_caldav_item(uid=db_item.caldav_uuid, name=db_item.name, amount=item['amount'])
+                log.info(f"Updated CalDav: {db_item.name} - Amount: {item['amount']}")
+                db_item.amount = item['amount']
+                db_item.save()
+            except ValueError as e:
+                log.error("Error updating CalDav item")
+                log.info(f"Recreating item: {db_item.name} - Amount: {item['amount']}")
+                caldav_item = insert_caldav_item(db_item.name, item['amount'])
+                db_item.caldav_uuid = caldav_item.instance.vtodo.uid.value
+                db_item.amount = item['amount']
+                db_item.save()
     db.close()
 
 
