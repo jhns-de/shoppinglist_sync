@@ -92,60 +92,75 @@ def overwrite_caldav_item(uid: str, name: str, amount: int):
         item.icalendar_instance.todos[0]["SUMMARY"] = f"{name} {amount}"
         item.save()
 
-def check_if_alrady_in_caldav(name: str, caldav_item_names: list[str]) -> list[str]:
+def check_if_already_in_caldav(name: str, caldav_item_names: list[str]) -> list[str]:
     return [item for item in caldav_item_names if name.lower() in item.lower()]
 
 
 def main():
-    db.connect()
-    db.create_tables([Synced])
-    log.info("DB connected and initialized")
+    try:
+        db.connect()
+        db.create_tables([Synced])
+        log.info("DB connected and initialized")
 
-    grocy_add_missing_products()
-    grocy_remove_done_items()
-    log.info("Grocy prepared")
+        grocy_add_missing_products()
+        grocy_remove_done_items()
+        log.info("Grocy prepared")
 
-    caldav_items = get_caldav_list()
-    caldav_item_names = [item.icalendar_instance.todos[0].get("SUMMARY") for item in caldav_items]
-    log.info("CalDav prepared")
+        caldav_items = get_caldav_list()
+        caldav_item_names = [item.icalendar_instance.todos[0].get("SUMMARY") for item in caldav_items]
+        log.info("CalDav prepared")
 
-    items = grocy_get_items()
-    for item in items:
-        id = item['id']
-        db_item = Synced.get_or_none(Synced.grocy_id == id)
-        if db_item is None:
-            product = grocy_get_product(item['product_id'])
-            name = product['product']['name']
-            log.info(f"New Item: {name} - Amount: {item['amount']}")
-            already_in_caldav = check_if_alrady_in_caldav(name, caldav_item_names)
-            if len(already_in_caldav) > 0:
-                log.warn(f"Already in CalDav: {already_in_caldav}")
-            log.info(f"Adding to CalDav: {name}")
-            caldav_item = insert_caldav_item(name, item['amount'])
-            caldav_uuid = caldav_item.icalendar_instance.todos[0].get("UID")
-            Synced.create(grocy_id=id,
-                grocy_product_id=item['product_id'],
-                name=name,
-                amount=item['amount'],
-                caldav_uuid=caldav_uuid
-            )
-        elif db_item.amount != item['amount']:
-            log.info(f"{db_item.name} amount changed: {db_item.amount} -> {item['amount']}")
+        items = grocy_get_items()
+        for item in items:
             try:
-                caldav_item = get_caldav_item(uid=db_item.caldav_uuid)
-                log.info(f"Found old item: {caldav_item.icalendar_instance.todos[0].get('SUMMARY')}")
-                overwrite_caldav_item(uid=db_item.caldav_uuid, name=db_item.name, amount=item['amount'])
-                log.info(f"Updated CalDav: {db_item.name} - Amount: {item['amount']}")
-                db_item.amount = item['amount']
-                db_item.save()
-            except ValueError as e:
-                log.error("Error updating CalDav item")
-                log.info(f"Recreating item: {db_item.name} - Amount: {item['amount']}")
-                caldav_item = insert_caldav_item(db_item.name, item['amount'])
-                db_item.caldav_uuid = caldav_item.icalendar_instance.todos[0].get("UID")
-                db_item.amount = item['amount']
-                db_item.save()
-    db.close()
+                id = item['id']
+                db_item = Synced.get_or_none(Synced.grocy_id == id)
+                if db_item is None:
+                    product = grocy_get_product(item['product_id'])
+                    name = product['product']['name']
+                    log.info(f"New Item: {name} - Amount: {item['amount']}")
+                    already_in_caldav = check_if_already_in_caldav(name, caldav_item_names)
+                    if len(already_in_caldav) > 0:
+                        log.warn(f"Already in CalDav: {already_in_caldav}")
+                    log.info(f"Adding to CalDav: {name}")
+                    caldav_item = insert_caldav_item(name, item['amount'])
+                    caldav_uuid = caldav_item.icalendar_instance.todos[0].get("UID")
+                    Synced.create(grocy_id=id,
+                        grocy_product_id=item['product_id'],
+                        name=name,
+                        amount=item['amount'],
+                        caldav_uuid=caldav_uuid
+                    )
+                elif db_item.amount != item['amount']:
+                    log.info(f"{db_item.name} amount changed: {db_item.amount} -> {item['amount']}")
+                    try:
+                        caldav_item = get_caldav_item(uid=db_item.caldav_uuid)
+                        log.info(f"Found old item: {caldav_item.icalendar_instance.todos[0].get('SUMMARY')}")
+                        overwrite_caldav_item(uid=db_item.caldav_uuid, name=db_item.name, amount=item['amount'])
+                        log.info(f"Updated CalDav: {db_item.name} - Amount: {item['amount']}")
+                        db_item.amount = item['amount']
+                        db_item.save()
+                    except ValueError as e:
+                        log.error(f"Error updating CalDav item: {e}")
+                        log.info(f"Recreating item: {db_item.name} - Amount: {item['amount']}")
+                        caldav_item = insert_caldav_item(db_item.name, item['amount'])
+                        db_item.caldav_uuid = caldav_item.icalendar_instance.todos[0].get("UID")
+                        db_item.amount = item['amount']
+                        db_item.save()
+            except Exception as e:
+                log.error(f"Error processing item {item.get('id', 'unknown')}", exc_info=e)
+                continue
+
+        log.info("Sync completed successfully")
+
+    except Exception as e:
+        log.error(f"Critical error during sync", exc_info=e)
+        raise
+    finally:
+        try:
+            db.close()
+        except:
+            pass
 
 
 if __name__=="__main__":
