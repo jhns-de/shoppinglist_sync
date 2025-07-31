@@ -45,6 +45,15 @@ def grocy_get_items():
 def grocy_get_product(product_id):
     return call_api(f"{grocy_url}/api/stock/products/{product_id}", grocy_api_key=grocy_token, query_type="GET")
 
+def get_caldav_calendars():
+    with caldav.DAVClient(
+        url = os.environ['CALDAV_HOST'],
+        username=os.environ['CALDAV_USER'],
+        password=os.environ['CALDAV_PASSWORD']
+    ) as client:
+        calendars = client.principal().calendars()
+        return calendars
+
 def get_caldav_list():
     with caldav.DAVClient(
         url = os.environ['CALDAV_HOST'],
@@ -97,6 +106,13 @@ def check_if_already_in_caldav(name: str, caldav_item_names: list[str]) -> list[
 
 
 def main():
+    if os.environ.get('CALDAV_SHOPPING_LIST_URL') is None:
+        log.error("CALDAV_SHOPPING_LIST_URL environment variable is not set")
+        cals = get_caldav_calendars()
+        for c in cals:
+            print(f"{c.name}: {c.url}")
+        return
+
     try:
         db.connect()
         db.create_tables([Synced])

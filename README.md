@@ -26,8 +26,8 @@ A Python application that synchronizes shopping lists between [Grocy](https://gr
 ### Using Docker (Recommended)
 
 1. Download the `docker-compose.yml` and the `.env.example`
-2. Rename `.env.example` in `.env` and configure the environment variables
-4. Start the service: `docker-compose up -d`
+2. Rename `.env.example` to `.env` and configure the environment variables
+3. Start the service: `docker-compose up -d`
 
 ## Environment Variables
 
@@ -49,8 +49,10 @@ GROCY_TOKEN=your-grocy-api-token
 
 #### CalDAV Setup
 
-- **Nextcloud**: Use your Nextcloud credentials and find the calendar URL in Calendar settings
+- **Nextcloud**: Use your Nextcloud credentials
 - **Other CalDAV servers**: Consult your provider's documentation
+
+To find the correct calendar URL, start the container without setting the `CALDAV_SHOPPING_LIST_URL` environment variable. The application will list all available calendars and their URLs in the output.
 
 #### Grocy Setup
 1. Log into your Grocy instance
