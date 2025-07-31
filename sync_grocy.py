@@ -4,9 +4,10 @@ from helper import call_api
 from datetime import datetime
 from peewee import *
 import caldav
-from rich.console import Console
+import structlog
 
-console = Console()
+# console = Console()
+log = structlog.get_logger()
 
 load_dotenv()
 
@@ -33,7 +34,7 @@ class Synced(BaseModel):
     datetime = DateTimeField(default=datetime.now)
 
 def grocy_add_missing_products():
-    return call_api(f"{grocy_url}/api/stock/shoppinglist/add-missing-products", grocy_api_key=grocy_token, query_type='POST', body={}) # ohne dem leeren Body 500 Error
+    return call_api(f"{grocy_url}/api/stock/shoppinglist/add-missing-products", grocy_api_key=grocy_token, query_type='POST', body={}) # without empty body 500 error
 
 def grocy_remove_done_items():
     return call_api(f"{grocy_url}/api/stock/shoppinglist/clear", grocy_api_key=grocy_token, query_type='POST', body={"done_only": True})
@@ -92,15 +93,15 @@ def check_if_alrady_in_caldav(name: str, caldav_item_names: list[str]) -> list[s
 def main():
     db.connect()
     db.create_tables([Synced])
-    console.print("DB connected and initialized")
+    log.info("DB connected and initialized")
 
     grocy_add_missing_products()
     grocy_remove_done_items()
-    console.print("Grocy prepared")
+    log.info("Grocy prepared")
 
     caldav_items = get_caldav_list()
     caldav_item_names = [item.instance.vtodo.summary.value for item in caldav_items]
-    console.print("CalDav prepared")
+    log.info("CalDav prepared")
 
     items = grocy_get_items()
     for item in items:
@@ -109,11 +110,11 @@ def main():
         if db_item is None:
             product = grocy_get_product(item['product_id'])
             name = product['product']['name']
-            console.print(f"New Item: {name} - Amount: {item['amount']}")
+            log.info(f"New Item: {name} - Amount: {item['amount']}")
             already_in_caldav = check_if_alrady_in_caldav(name, caldav_item_names)
             if len(already_in_caldav) > 0:
-                console.print(f"[bold red]Already in CalDav: {already_in_caldav}[/bold red]")
-            console.print(f"[bold green]Adding to CalDav: {name}[/bold green]")
+                log.warn(f"Already in CalDav: {already_in_caldav}")
+            log.info(f"Adding to CalDav: {name}")
             caldav_item = insert_caldav_item(name, item['amount'])
             caldav_uuid = caldav_item.instance.vtodo.uid.value
             Synced.create(grocy_id=id,
@@ -123,11 +124,11 @@ def main():
                 caldav_uuid=caldav_uuid
             )
         elif db_item.amount != item['amount']:
-            console.print(f"[bold red]{db_item.name} amount changed: {db_item.amount} -> {item['amount']}[/bold red]")
+            log.info(f"{db_item.name} amount changed: {db_item.amount} -> {item['amount']}")
             caldav_item = get_caldav_item(uid=db_item.caldav_uuid)
-            print(f"Found old item: {caldav_item.instance.vtodo.summary.value}")
+            log.info(f"Found old item: {caldav_item.instance.vtodo.summary.value}")
             overwrite_caldav_item(uid=db_item.caldav_uuid, name=db_item.name, amount=item['amount'])
-            console.print(f"[bold green]Updated CalDav: {db_item.name} - Amount: {item['amount']}[/bold green]")
+            log.info(f"Updated CalDav: {db_item.name} - Amount: {item['amount']}")
             db_item.amount = item['amount']
             db_item.save()
     db.close()

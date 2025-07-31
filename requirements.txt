@@ -5,3 +5,4 @@ caldav==2.0.1
 vobject==0.9.9
 peewee==3.18.2
 schedule==1.2.2
+structlog==25.4.0
