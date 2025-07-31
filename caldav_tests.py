@@ -18,12 +18,12 @@ with caldav.DAVClient(
     for c in cals:
         print(c.name, c.url)
 
-    console.rule("Shopping List")    
+    console.rule("Shopping List")
     shopping_list = client.calendar(url=os.environ['CALDAV_SHOPPING_LIST_URL'])
     assert 'VTODO' in shopping_list.get_supported_components()
     items = shopping_list.todos()
     for item in items:
-        print(item.instance.vtodo.summary.value)
+        print(item.icalendar_instance.todos[0].get("SUMMARY"))
 
     console.rule("Single Item")
 
@@ -31,13 +31,18 @@ with caldav.DAVClient(
 
     console.rule("Pretty Print")
 
-    item.instance.prettyPrint()
+    print(item.icalendar_instance.todos[0])
 
     console.rule("Add Test Item")
     item = shopping_list.save_todo(
         summary="Test Item",
         description="This is a test item",
     )
-    item.instance.prettyPrint()
-    print(item.instance.vtodo.summary.value)
-    print(item.instance.vtodo.uid.value)
+    print(item.icalendar_instance.todos[0])
+    # print(item.instance.vtodo.summary.value)
+    # print(item.instance.vtodo.uid.value)
+    print(item.icalendar_instance)
+    print("---"*5)
+    for property, value in vars(item.icalendar_instance).items():
+        print(property, ":", value)
+    print(item.icalendar_instance.todos[0].get('SUMMARY'))

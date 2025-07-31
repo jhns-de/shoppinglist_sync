@@ -89,7 +89,7 @@ def overwrite_caldav_item(uid: str, name: str, amount: int):
     ) as client:
         shopping_list = client.calendar(url=os.environ['CALDAV_SHOPPING_LIST_URL'])
         item = shopping_list.search(todo=True, uid=uid)[0]
-        item.instance.vtodo.summary.value = f"{name} {amount}"
+        item.icalendar_instance.todos[0]["SUMMARY"] = f"{name} {amount}"
         item.save()
 
 def check_if_alrady_in_caldav(name: str, caldav_item_names: list[str]) -> list[str]:
@@ -106,7 +106,7 @@ def main():
     log.info("Grocy prepared")
 
     caldav_items = get_caldav_list()
-    caldav_item_names = [item.instance.vtodo.summary.value for item in caldav_items]
+    caldav_item_names = [item.icalendar_instance.todos[0].get("SUMMARY") for item in caldav_items]
     log.info("CalDav prepared")
 
     items = grocy_get_items()
@@ -122,7 +122,7 @@ def main():
                 log.warn(f"Already in CalDav: {already_in_caldav}")
             log.info(f"Adding to CalDav: {name}")
             caldav_item = insert_caldav_item(name, item['amount'])
-            caldav_uuid = caldav_item.instance.vtodo.uid.value
+            caldav_uuid = caldav_item.icalendar_instance.todos[0].get("UID")
             Synced.create(grocy_id=id,
                 grocy_product_id=item['product_id'],
                 name=name,
@@ -133,7 +133,7 @@ def main():
             log.info(f"{db_item.name} amount changed: {db_item.amount} -> {item['amount']}")
             try:
                 caldav_item = get_caldav_item(uid=db_item.caldav_uuid)
-                log.info(f"Found old item: {caldav_item.instance.vtodo.summary.value}")
+                log.info(f"Found old item: {caldav_item.icalendar_instance.todos[0].get('SUMMARY')}")
                 overwrite_caldav_item(uid=db_item.caldav_uuid, name=db_item.name, amount=item['amount'])
                 log.info(f"Updated CalDav: {db_item.name} - Amount: {item['amount']}")
                 db_item.amount = item['amount']
@@ -142,7 +142,7 @@ def main():
                 log.error("Error updating CalDav item")
                 log.info(f"Recreating item: {db_item.name} - Amount: {item['amount']}")
                 caldav_item = insert_caldav_item(db_item.name, item['amount'])
-                db_item.caldav_uuid = caldav_item.instance.vtodo.uid.value
+                db_item.caldav_uuid = caldav_item.icalendar_instance.todos[0].get("UID")
                 db_item.amount = item['amount']
                 db_item.save()
     db.close()
