@@ -4,4 +4,4 @@ rich>=13.9.4
 caldav==2.0.1
 peewee==3.18.2
 schedule==1.2.2
-structlog==25.4.0
+structlog==25.5.0
