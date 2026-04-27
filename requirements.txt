@@ -1,7 +1,7 @@
 httpx>=0.28.1
 python-dotenv>=1.2.2
 rich>=13.9.4
-caldav==2.2.6
+caldav==3.2.0
 peewee==4.0.5
 schedule==1.2.2
 structlog==25.5.0
