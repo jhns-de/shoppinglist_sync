@@ -1,4 +1,4 @@
-FROM python:3.14.5-slim
+FROM python:3.14.6-slim
 
 # don't buffer python output to stdout
 ENV PYTHONUNBUFFERED=1
